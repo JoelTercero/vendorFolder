@@ -45,7 +45,7 @@ application:
     doctrine_migrations:
         # List of namespace/path pairs to search for migrations, at least one required
         migrations_paths:
-            'App\Migrations': 'src/App'
+            'App\Migrations': '%kernel.project_dir%/src/App'
             'AnotherApp\Migrations': '/path/to/other/migrations'
             'SomeBundle\Migrations': '@SomeBundle/Migrations'
 
@@ -65,7 +65,7 @@ application:
             table_storage:
                 table_name: 'doctrine_migration_versions'
                 version_column_name: 'version'
-                version_column_length: 1024
+                version_column_length: 192
                 executed_at_column_name: 'executed_at'
 
         # Possible values: "BY_YEAR", "BY_YEAR_AND_MONTH", false
@@ -80,6 +80,9 @@ application:
         # Adds an extra check in the generated migrations to ensure that is executed on the same database type.
         check_database_platform: true
 
+        # Whether or not to wrap migrations in a single transaction.
+        transactional: true
+
         services:
             # Custom migration sorting service id
             'Doctrine\Migrations\Version\Comparator': ~
@@ -91,11 +94,9 @@ application:
             # Custom migration sorting service id via callables (MyCallableFactory must be a callable)
             'Doctrine\Migrations\Version\Comparator': 'MyCallableFactory'
 
-
-
-
 - The ``services`` node allows you to provide custom services to the underlying ``DependencyFactory`` part of ``doctrine/migrations``.
 - The node ``factories`` is similar to ``services``, with the difference that it accepts only callables.
+
 The provided callable must return the service to be passed to the ``DependencyFactory``.
 The callable will receive as first argument the ``DependencyFactory`` itself,
 allowing you to fetch other dependencies from the factory while instantiating your custom dependencies.
@@ -287,6 +288,13 @@ Here is an example on how to inject the service container into your migrations:
             return $instance;
         }
     }
+
+
+.. tip::
+
+    If your migration class implements the interface ``Symfony\Component\DependencyInjection\ContainerAwareInterface``
+    this bundle will automatically inject the default symfony container into your migration class
+    (this because the ``MigrationFactoryDecorator`` shown in this example is the default migration factory used by this bundle).
 
 
 Generating Migrations Automatically

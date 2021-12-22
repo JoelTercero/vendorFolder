@@ -1,22 +1,6 @@
 <?php
 
-/*
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license. For more information, see
- * <http://www.doctrine-project.org>.
- */
+declare(strict_types=1);
 
 namespace Doctrine\ORM\Query;
 
@@ -52,6 +36,7 @@ class Expr
      * @param Expr\Comparison|Expr\Func|Expr\Andx|Expr\Orx|string $x Optional clause. Defaults to null,
      *                                                               but requires at least one defined
      *                                                               when converting to string.
+     * @psalm-param Expr\Comparison|Expr\Func|Expr\Andx|Expr\Orx|string ...$x
      *
      * @return Expr\Andx
      */
@@ -72,6 +57,7 @@ class Expr
      * @param Expr\Comparison|Expr\Func|Expr\Andx|Expr\Orx|string $x Optional clause. Defaults to null,
      *                                                               but requires at least one defined
      *                                                               when converting to string.
+     * @psalm-param Expr\Comparison|Expr\Func|Expr\Andx|Expr\Orx|string ...$x
      *
      * @return Expr\Orx
      */
@@ -352,6 +338,17 @@ class Expr
     }
 
     /**
+     * Creates a MOD($x, $y) function expression to return the remainder of $x divided by $y.
+     *
+     * @param mixed $x
+     * @param mixed $y
+     */
+    public function mod($x, $y): Expr\Func
+    {
+        return new Expr\Func('MOD', [$x, $y]);
+    }
+
+    /**
      * Creates a product mathematical expression with the given arguments.
      *
      * First argument is considered the left expression and the second is the right expression.
@@ -457,7 +454,7 @@ class Expr
 
             foreach ($y as &$literal) {
                 if (! ($literal instanceof Expr\Literal)) {
-                    $literal = $this->_quoteLiteral($literal);
+                    $literal = $this->quoteLiteral($literal);
                 }
             }
         }
@@ -482,7 +479,7 @@ class Expr
 
             foreach ($y as &$literal) {
                 if (! ($literal instanceof Expr\Literal)) {
-                    $literal = $this->_quoteLiteral($literal);
+                    $literal = $this->quoteLiteral($literal);
                 }
             }
         }
@@ -617,17 +614,15 @@ class Expr
      */
     public function literal($literal)
     {
-        return new Expr\Literal($this->_quoteLiteral($literal));
+        return new Expr\Literal($this->quoteLiteral($literal));
     }
 
     /**
      * Quotes a literal value, if necessary, according to the DQL syntax.
      *
      * @param mixed $literal The literal value.
-     *
-     * @return string
      */
-    private function _quoteLiteral($literal)
+    private function quoteLiteral($literal): string
     {
         if (is_numeric($literal) && ! is_string($literal)) {
             return (string) $literal;

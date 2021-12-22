@@ -1,22 +1,6 @@
 <?php
 
-/*
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license. For more information, see
- * <http://www.doctrine-project.org>.
- */
+declare(strict_types=1);
 
 namespace Doctrine\ORM\Tools\Export\Driver;
 
@@ -65,11 +49,13 @@ class YamlExporter extends AbstractExporter
             $array['inheritanceType'] = $this->_getInheritanceTypeString($inheritanceType);
         }
 
-        if ($column = $metadata->discriminatorColumn) {
+        $column = $metadata->discriminatorColumn;
+        if ($column) {
             $array['discriminatorColumn'] = $column;
         }
 
-        if ($map = $metadata->discriminatorMap) {
+        $map = $metadata->discriminatorMap;
+        if ($map) {
             $array['discriminatorMap'] = $map;
         }
 
@@ -241,6 +227,11 @@ class YamlExporter extends AbstractExporter
         return Yaml::dump($array, $inline);
     }
 
+    /**
+     * @psalm-param array<string, mixed> $array
+     *
+     * @psalm-return array<string, mixed>&array{entityListeners: array<class-string, array<string, array{string}>>}
+     */
     private function processEntityListeners(ClassMetadataInfo $metadata, array $array): array
     {
         if (count($metadata->entityListeners) === 0) {
@@ -256,8 +247,17 @@ class YamlExporter extends AbstractExporter
         return $array;
     }
 
-    private function processEntityListenerConfig(array $array, array $entityListenerConfig, string $event): array
-    {
+    /**
+     * @psalm-param array{entityListeners: array<class-string, array<string, array{string}>>} $array
+     * @psalm-param list<array{class: class-string, method: string}> $entityListenerConfig
+     *
+     * @psalm-return array{entityListeners: array<class-string, array<string, array{string}>>}
+     */
+    private function processEntityListenerConfig(
+        array $array,
+        array $entityListenerConfig,
+        string $event
+    ): array {
         foreach ($entityListenerConfig as $entityListener) {
             if (! isset($array['entityListeners'][$entityListener['class']])) {
                 $array['entityListeners'][$entityListener['class']] = [];

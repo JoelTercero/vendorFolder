@@ -1,27 +1,13 @@
 <?php
 
-/*
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license. For more information, see
- * <http://www.doctrine-project.org>.
- */
+declare(strict_types=1);
 
 namespace Doctrine\ORM\Tools;
 
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
+use Doctrine\Deprecations\Deprecation;
 use Doctrine\Inflector\Inflector;
 use Doctrine\Inflector\InflectorFactory;
 use Doctrine\ORM\Mapping\ClassMetadataInfo;
@@ -64,12 +50,10 @@ use function strrpos;
 use function strtolower;
 use function substr;
 use function token_get_all;
-use function trigger_error;
 use function ucfirst;
 use function var_export;
 
 use const DIRECTORY_SEPARATOR;
-use const E_USER_DEPRECATED;
 use const PHP_EOL;
 use const PHP_VERSION_ID;
 use const T_CLASS;
@@ -139,6 +123,8 @@ class EntityGenerator
 
     /**
      * Number of spaces to use for indention in generated code.
+     *
+     * @var int
      */
     protected $numSpaces = 4;
 
@@ -204,35 +190,35 @@ class EntityGenerator
     /**
      * Hash-map for handle types.
      *
-     * @var array
+     * @psalm-var array<Types::*|'json_array', string>
      */
     protected $typeAlias = [
-        Type::DATETIMETZ    => '\DateTime',
-        Type::DATETIME      => '\DateTime',
-        Type::DATE          => '\DateTime',
-        Type::TIME          => '\DateTime',
-        Type::OBJECT        => '\stdClass',
-        Type::INTEGER       => 'int',
-        Type::BIGINT        => 'int',
-        Type::SMALLINT      => 'int',
-        Type::TEXT          => 'string',
-        Type::BLOB          => 'string',
-        Type::DECIMAL       => 'string',
-        Type::GUID          => 'string',
-        Type::JSON_ARRAY    => 'array',
-        Type::SIMPLE_ARRAY  => 'array',
-        Type::BOOLEAN       => 'bool',
+        Types::DATETIMETZ_MUTABLE => '\DateTime',
+        Types::DATETIME_MUTABLE   => '\DateTime',
+        Types::DATE_MUTABLE       => '\DateTime',
+        Types::TIME_MUTABLE       => '\DateTime',
+        Types::OBJECT             => '\stdClass',
+        Types::INTEGER            => 'int',
+        Types::BIGINT             => 'int',
+        Types::SMALLINT           => 'int',
+        Types::TEXT               => 'string',
+        Types::BLOB               => 'string',
+        Types::DECIMAL            => 'string',
+        Types::GUID               => 'string',
+        'json_array'              => 'array',
+        Types::JSON               => 'array',
+        Types::SIMPLE_ARRAY       => 'array',
+        Types::BOOLEAN            => 'bool',
     ];
 
     /**
      * Hash-map to handle generator types string.
      *
-     * @var array
+     * @psalm-var array<ClassMetadataInfo::GENERATOR_TYPE_*, string>
      */
     protected static $generatorStrategyMap = [
         ClassMetadataInfo::GENERATOR_TYPE_AUTO      => 'AUTO',
         ClassMetadataInfo::GENERATOR_TYPE_SEQUENCE  => 'SEQUENCE',
-        ClassMetadataInfo::GENERATOR_TYPE_TABLE     => 'TABLE',
         ClassMetadataInfo::GENERATOR_TYPE_IDENTITY  => 'IDENTITY',
         ClassMetadataInfo::GENERATOR_TYPE_NONE      => 'NONE',
         ClassMetadataInfo::GENERATOR_TYPE_UUID      => 'UUID',
@@ -242,7 +228,7 @@ class EntityGenerator
     /**
      * Hash-map to handle the change tracking policy string.
      *
-     * @var array
+     * @psalm-var array<ClassMetadataInfo::CHANGETRACKING_*, string>
      */
     protected static $changeTrackingPolicyMap = [
         ClassMetadataInfo::CHANGETRACKING_DEFERRED_IMPLICIT  => 'DEFERRED_IMPLICIT',
@@ -253,7 +239,7 @@ class EntityGenerator
     /**
      * Hash-map to handle the inheritance type string.
      *
-     * @var array
+     * @psalm-var array<ClassMetadataInfo::INHERITANCE_TYPE_*, string>
      */
     protected static $inheritanceTypeMap = [
         ClassMetadataInfo::INHERITANCE_TYPE_NONE            => 'NONE',
@@ -372,7 +358,12 @@ public function __construct(<params>)
 
     public function __construct()
     {
-        @trigger_error(self::class . ' is deprecated and will be removed in Doctrine ORM 3.0', E_USER_DEPRECATED);
+        Deprecation::trigger(
+            'doctrine/orm',
+            'https://github.com/doctrine/orm/issues/8458',
+            '%s is deprecated with no replacement',
+            self::class
+        );
 
         $this->annotationsPrefix = 'ORM\\';
         $this->inflector         = InflectorFactory::create()->build();
@@ -381,8 +372,8 @@ public function __construct(<params>)
     /**
      * Generates and writes entity classes for the given array of ClassMetadataInfo instances.
      *
-     * @param array  $metadatas
      * @param string $outputDirectory
+     * @psalm-param list<ClassMetadataInfo> $metadatas
      *
      * @return void
      */
@@ -536,12 +527,11 @@ public function __construct(<params>)
      * Sets the class fields visibility for the entity (can either be private or protected).
      *
      * @param string $visibility
+     * @psalm-param self::FIELD_VISIBLE_*
      *
      * @return void
      *
      * @throws InvalidArgumentException
-     *
-     * @psalm-param self::FIELD_VISIBLE_*
      */
     public function setFieldVisibility($visibility)
     {
@@ -556,6 +546,8 @@ public function __construct(<params>)
      * Sets whether or not to generate immutable embeddables.
      *
      * @param bool $embeddablesImmutable
+     *
+     * @return void
      */
     public function setEmbeddablesImmutable($embeddablesImmutable)
     {
@@ -740,10 +732,7 @@ public function __construct(<params>)
         return '';
     }
 
-    /**
-     * @return string
-     */
-    private function generateEmbeddableConstructor(ClassMetadataInfo $metadata)
+    private function generateEmbeddableConstructor(ClassMetadataInfo $metadata): string
     {
         $paramTypes     = [];
         $paramVariables = [];
@@ -943,10 +932,9 @@ public function __construct(<params>)
 
     /**
      * @return ReflectionClass[]
+     * @psalm-return array<trait-string, ReflectionClass<object>>
      *
      * @throws ReflectionException
-     *
-     * @psalm-return array<trait-string, ReflectionClass>
      */
     protected function getTraits(ClassMetadataInfo $metadata)
     {
@@ -1040,7 +1028,8 @@ public function __construct(<params>)
             ];
 
             foreach ($methods as $method) {
-                if ($code = $this->$method($metadata)) {
+                $code = $this->$method($metadata);
+                if ($code) {
                     $lines[] = ' * ' . $code;
                 }
             }
@@ -1111,7 +1100,7 @@ public function __construct(<params>)
 
     /**
      * @param string $constraintName
-     * @param array  $constraints
+     * @psalm-param array<string, array<string, mixed>> $constraints
      *
      * @return string
      */
@@ -1194,14 +1183,23 @@ public function __construct(<params>)
             if (
                 (! $metadata->isEmbeddedClass || ! $this->embeddablesImmutable)
                 && (! isset($fieldMapping['id']) || ! $fieldMapping['id'] || $metadata->generatorType === ClassMetadataInfo::GENERATOR_TYPE_NONE)
-                && $code = $this->generateEntityStubMethod($metadata, 'set', $fieldMapping['fieldName'], $fieldMapping['type'], $nullableField)
             ) {
-                $methods[] = $code;
+                $methods[] = $this->generateEntityStubMethod(
+                    $metadata,
+                    'set',
+                    $fieldMapping['fieldName'],
+                    $fieldMapping['type'],
+                    $nullableField
+                );
             }
 
-            if ($code = $this->generateEntityStubMethod($metadata, 'get', $fieldMapping['fieldName'], $fieldMapping['type'], $nullableField)) {
-                $methods[] = $code;
-            }
+            $methods[] = $this->generateEntityStubMethod(
+                $metadata,
+                'get',
+                $fieldMapping['fieldName'],
+                $fieldMapping['type'],
+                $nullableField
+            );
         }
 
         foreach ($metadata->embeddedClasses as $fieldName => $embeddedClass) {
@@ -1210,46 +1208,69 @@ public function __construct(<params>)
             }
 
             if (! $metadata->isEmbeddedClass || ! $this->embeddablesImmutable) {
-                if ($code = $this->generateEntityStubMethod($metadata, 'set', $fieldName, $embeddedClass['class'])) {
-                    $methods[] = $code;
-                }
+                $methods[] = $this->generateEntityStubMethod(
+                    $metadata,
+                    'set',
+                    $fieldName,
+                    $embeddedClass['class']
+                );
             }
 
-            if ($code = $this->generateEntityStubMethod($metadata, 'get', $fieldName, $embeddedClass['class'])) {
-                $methods[] = $code;
-            }
+            $methods[] = $this->generateEntityStubMethod(
+                $metadata,
+                'get',
+                $fieldName,
+                $embeddedClass['class']
+            );
         }
 
         foreach ($metadata->associationMappings as $associationMapping) {
             if ($associationMapping['type'] & ClassMetadataInfo::TO_ONE) {
-                $nullable = $this->isAssociationIsNullable($associationMapping) ? 'null' : null;
-                if ($code = $this->generateEntityStubMethod($metadata, 'set', $associationMapping['fieldName'], $associationMapping['targetEntity'], $nullable)) {
-                    $methods[] = $code;
-                }
+                $nullable  = $this->isAssociationIsNullable($associationMapping) ? 'null' : null;
+                $methods[] = $this->generateEntityStubMethod(
+                    $metadata,
+                    'set',
+                    $associationMapping['fieldName'],
+                    $associationMapping['targetEntity'],
+                    $nullable
+                );
 
-                if ($code = $this->generateEntityStubMethod($metadata, 'get', $associationMapping['fieldName'], $associationMapping['targetEntity'], $nullable)) {
-                    $methods[] = $code;
-                }
+                $methods[] = $this->generateEntityStubMethod(
+                    $metadata,
+                    'get',
+                    $associationMapping['fieldName'],
+                    $associationMapping['targetEntity'],
+                    $nullable
+                );
             } elseif ($associationMapping['type'] & ClassMetadataInfo::TO_MANY) {
-                if ($code = $this->generateEntityStubMethod($metadata, 'add', $associationMapping['fieldName'], $associationMapping['targetEntity'])) {
-                    $methods[] = $code;
-                }
+                $methods[] = $this->generateEntityStubMethod(
+                    $metadata,
+                    'add',
+                    $associationMapping['fieldName'],
+                    $associationMapping['targetEntity']
+                );
 
-                if ($code = $this->generateEntityStubMethod($metadata, 'remove', $associationMapping['fieldName'], $associationMapping['targetEntity'])) {
-                    $methods[] = $code;
-                }
+                $methods[] = $this->generateEntityStubMethod(
+                    $metadata,
+                    'remove',
+                    $associationMapping['fieldName'],
+                    $associationMapping['targetEntity']
+                );
 
-                if ($code = $this->generateEntityStubMethod($metadata, 'get', $associationMapping['fieldName'], Collection::class)) {
-                    $methods[] = $code;
-                }
+                $methods[] = $this->generateEntityStubMethod(
+                    $metadata,
+                    'get',
+                    $associationMapping['fieldName'],
+                    Collection::class
+                );
             }
         }
 
-        return implode("\n\n", $methods);
+        return implode("\n\n", array_filter($methods));
     }
 
     /**
-     * @param array $associationMapping
+     * @psalm-param array<string, mixed> $associationMapping
      *
      * @return bool
      */
@@ -1381,7 +1402,7 @@ public function __construct(<params>)
         $methodName   = $type . $this->inflector->classify($fieldName);
         $variableName = $this->inflector->camelize($fieldName);
 
-        if (in_array($type, ['add', 'remove'])) {
+        if (in_array($type, ['add', 'remove'], true)) {
             $methodName   = $this->inflector->singularize($methodName);
             $variableName = $this->inflector->singularize($variableName);
         }
@@ -1395,7 +1416,7 @@ public function __construct(<params>)
         $var      = sprintf('%sMethodTemplate', $type);
         $template = static::$$var;
 
-        $methodTypeHint = null;
+        $methodTypeHint = '';
         $types          = Type::getTypesMap();
         $variableType   = $typeHint ? $this->getType($typeHint) : null;
 
@@ -1453,7 +1474,7 @@ public function __construct(<params>)
     }
 
     /**
-     * @param array $joinColumn
+     * @psalm-param array<string, mixed> $joinColumn
      *
      * @return string
      */
@@ -1510,7 +1531,8 @@ public function __construct(<params>)
             if (isset($associationMapping['id']) && $associationMapping['id']) {
                 $lines[] = $this->spaces . ' * @' . $this->annotationsPrefix . 'Id';
 
-                if ($generatorType = $this->getIdGeneratorTypeString($metadata->generatorType)) {
+                $generatorType = $this->getIdGeneratorTypeString($metadata->generatorType);
+                if ($generatorType) {
                     $lines[] = $this->spaces . ' * @' . $this->annotationsPrefix . 'GeneratedValue(strategy="' . $generatorType . '")';
                 }
             }
@@ -1596,7 +1618,8 @@ public function __construct(<params>)
                 $joinColumnsLines = [];
 
                 foreach ($associationMapping['joinColumns'] as $joinColumn) {
-                    if ($joinColumnAnnot = $this->generateJoinColumnAnnotation($joinColumn)) {
+                    $joinColumnAnnot = $this->generateJoinColumnAnnotation($joinColumn);
+                    if ($joinColumnAnnot) {
                         $joinColumnsLines[] = $this->spaces . ' *   ' . $joinColumnAnnot;
                     }
                 }
@@ -1738,7 +1761,8 @@ public function __construct(<params>)
             if (isset($fieldMapping['id']) && $fieldMapping['id']) {
                 $lines[] = $this->spaces . ' * @' . $this->annotationsPrefix . 'Id';
 
-                if ($generatorType = $this->getIdGeneratorTypeString($metadata->generatorType)) {
+                $generatorType = $this->getIdGeneratorTypeString($metadata->generatorType);
+                if ($generatorType) {
                     $lines[] = $this->spaces . ' * @' . $this->annotationsPrefix . 'GeneratedValue(strategy="' . $generatorType . '")';
                 }
 
@@ -1772,7 +1796,7 @@ public function __construct(<params>)
     }
 
     /**
-     * @param array $embeddedClass
+     * @psalm-param array<string, mixed> $embeddedClass
      *
      * @return string
      */
@@ -1836,7 +1860,7 @@ public function __construct(<params>)
         $lines = explode("\n", $code);
 
         foreach ($lines as $key => $value) {
-            if (! empty($value)) {
+            if ($value !== '') {
                 $lines[$key] = str_repeat($this->spaces, $num) . $lines[$key];
             }
         }
@@ -1893,11 +1917,9 @@ public function __construct(<params>)
     }
 
     /**
-     * @param array $fieldMapping
-     *
-     * @return string|null
+     * @psalm-param array<string, mixed> $fieldMapping
      */
-    private function nullableFieldExpression(array $fieldMapping)
+    private function nullableFieldExpression(array $fieldMapping): ?string
     {
         if (isset($fieldMapping['nullable']) && $fieldMapping['nullable'] === true) {
             return 'null';
@@ -1909,11 +1931,9 @@ public function __construct(<params>)
     /**
      * Exports (nested) option elements.
      *
-     * @param array $options
-     *
-     * @return string
+     * @psalm-param array<string, mixed> $options
      */
-    private function exportTableOptions(array $options)
+    private function exportTableOptions(array $options): string
     {
         $optionsStr = [];
 

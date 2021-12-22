@@ -3,10 +3,12 @@
 namespace Doctrine\Bundle\DoctrineBundle\CacheWarmer;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Persistence\Mapping\AbstractClassMetadataFactory;
 use LogicException;
 use Symfony\Bundle\FrameworkBundle\CacheWarmer\AbstractPhpFileCacheWarmer;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
-use Symfony\Component\Cache\DoctrineProvider;
+
+use function is_file;
 
 class DoctrineMetadataCacheWarmer extends AbstractPhpFileCacheWarmer
 {
@@ -32,9 +34,7 @@ class DoctrineMetadataCacheWarmer extends AbstractPhpFileCacheWarmer
         return false;
     }
 
-    /**
-     * @param string $cacheDir
-     */
+    /** @param string $cacheDir */
     protected function doWarmUp($cacheDir, ArrayAdapter $arrayAdapter): bool
     {
         // cache already warmed up, no needs to do it again
@@ -43,11 +43,11 @@ class DoctrineMetadataCacheWarmer extends AbstractPhpFileCacheWarmer
         }
 
         $metadataFactory = $this->entityManager->getMetadataFactory();
-        if (count($metadataFactory->getLoadedMetadata()) > 0) {
+        if ($metadataFactory instanceof AbstractClassMetadataFactory && $metadataFactory->getLoadedMetadata()) {
             throw new LogicException('DoctrineMetadataCacheWarmer must load metadata first, check priority of your warmers.');
         }
 
-        $metadataFactory->setCacheDriver(new DoctrineProvider($arrayAdapter));
+        $metadataFactory->setCache($arrayAdapter);
         $metadataFactory->getAllMetadata();
 
         return true;
